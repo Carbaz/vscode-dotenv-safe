@@ -49,9 +49,28 @@ switching to chat.
 * Bypass per-file: right-click the file → **Open With...** → **Text Editor**
 * Wrapping quotes (e.g. `KEY="value"`) get baked into the displayed value.
 
+## Screenshots
+
+### Values masked by default
+
+![Dotenv Safe Edit with values masked](assets/vars-masked.png)
+
+### Values revealed for editing
+
+![Dotenv Safe Edit with values revealed](assets/vars-unmasked.png)
+
 ## Install
 
-There's no published Marketplace release yet, so build the `.vsix` locally first:
+Install Dotenv Safe Edit from the Visual Studio Marketplace, or directly from
+the VS Code Extensions view:
+
+1. Open the Extensions view in VS Code.
+2. Search for **Dotenv Safe Edit**.
+3. Select the extension and click **Install**.
+
+### Manual installation
+
+To build and install the extension manually:
 
 1. `npm install`
 2. `npm run package` (runs `tsc` then `vsce package`)
