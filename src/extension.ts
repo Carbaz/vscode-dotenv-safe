@@ -144,20 +144,28 @@ function getHtml(filePath: string, text: string): string {
     if (l.isRaw) {
       return `
       <div class="raw-line" data-idx="${i}">
+        <div class="move-group">
+          <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
+          <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
+        </div>
         <input class="raw-input" data-idx="${i}" value="${esc(l.raw)}" spellcheck="false" autocomplete="off" />
         <button class="icon-btn del" data-idx="${i}" title="Delete line" tabindex="-1">✕</button>
       </div>`;
     }
     return `
       <div class="row" data-idx="${i}">
+        <div class="move-group">
+          <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
+          <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
+        </div>
         <div class="kv${l.spaced ? ' spaced' : ''}">
           <input class="key" data-idx="${i}" value="${esc(l.key)}" spellcheck="false" />
           <span class="eq">=</span>
           <input class="value masked" type="password" data-idx="${i}" value="${esc(l.value)}" spellcheck="false" autocomplete="off" />
         </div>
         <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility" tabindex="-1">⌒</button>
-        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =" tabindex="-1">⇄</button>
         <button class="icon-btn copy" data-idx="${i}" title="Copy value" tabindex="-1">⧉</button>
+        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =" tabindex="-1">⇄</button>
         <button class="icon-btn del" data-idx="${i}" title="Delete row" tabindex="-1">✕</button>
       </div>`;
   }).join('\n');
@@ -227,6 +235,7 @@ function getHtml(filePath: string, text: string): string {
     opacity: 0.7; padding: 2px 4px;
   }
   .icon-btn:hover { opacity: 1; }
+  .move-group { display: flex; gap: 0; }
   .confirm-overlay {
     position: fixed; inset: 0; z-index: 10; display: flex;
     align-items: center; justify-content: center;
@@ -276,6 +285,21 @@ function getHtml(filePath: string, text: string): string {
   function markDirty() {
     dirty = true;
     saveBtn.disabled = false;
+  }
+
+  // Reorders by swapping DOM position; collect() reads back in document
+  // order so this is all that's needed to change the saved line order.
+  function moveRow(row, dir) {
+    const sibling = dir === 'up' ? row.previousElementSibling : row.nextElementSibling;
+    if (!sibling) {
+      return;
+    }
+    if (dir === 'up') {
+      rowsEl.insertBefore(row, sibling);
+    } else {
+      rowsEl.insertBefore(sibling, row);
+    }
+    markDirty();
   }
 
   // Recomputed only when a row's spacing is toggled, so "add row" always
@@ -350,7 +374,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addRow').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'row';
-    div.innerHTML = '<div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
+    div.innerHTML = '<div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
     markDirty();
@@ -361,6 +385,8 @@ function getHtml(filePath: string, text: string): string {
     const copyBtn = row.querySelector('.copy');
     const delBtn = row.querySelector('.del');
     const spacingBtn = row.querySelector('.spacing-toggle');
+    const moveUpBtn = row.querySelector('.move-up');
+    const moveDownBtn = row.querySelector('.move-down');
     const kv = row.querySelector('.kv');
     const keyInput = row.querySelector('.key');
     const valueInput = row.querySelector('.value');
@@ -391,6 +417,8 @@ function getHtml(filePath: string, text: string): string {
       recalcDefaultSpaced();
       markDirty();
     });
+    moveUpBtn?.addEventListener('click', () => moveRow(row, 'up'));
+    moveDownBtn?.addEventListener('click', () => moveRow(row, 'down'));
     delBtn?.addEventListener('click', () => {
       showConfirmPopup(delBtn, 'Delete this variable?', () => {
         row.remove();
@@ -404,7 +432,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addLine').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'raw-line';
-    div.innerHTML = '<input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
+    div.innerHTML = '<div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRawRow(div);
     div.querySelector('.raw-input').focus();
@@ -413,6 +441,8 @@ function getHtml(filePath: string, text: string): string {
 
   function wireRawRow(row) {
     const input = row.querySelector('.raw-input');
+    const moveUpBtn = row.querySelector('.move-up');
+    const moveDownBtn = row.querySelector('.move-down');
     const delBtn = row.querySelector('.del');
     input?.addEventListener('input', () => {
       // Auto-prefix so free text always reads as a comment unless left blank.
@@ -423,6 +453,8 @@ function getHtml(filePath: string, text: string): string {
       }
       markDirty();
     });
+    moveUpBtn?.addEventListener('click', () => moveRow(row, 'up'));
+    moveDownBtn?.addEventListener('click', () => moveRow(row, 'down'));
     delBtn?.addEventListener('click', () => {
       showConfirmPopup(delBtn, 'Delete this line?', () => {
         row.remove();
