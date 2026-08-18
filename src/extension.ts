@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 /**
- * Dotenv Safe
+ * Dotenv Safe Edit
  *
  * Registers a CustomReadonlyEditorProvider (NOT a CustomTextEditorProvider).
  * That distinction matters: because the .env file is never turned into a
@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
  * and never becomes the "active text editor". Extensions/agents that pull
  * context from the active editor or open text documents (Copilot Chat "Ask"
  * mode's implicit editor context, etc.) simply have nothing to read while
- * the file is open in Dotenv Safe.
+ * the file is open in Dotenv Safe Edit.
  *
  * The file is still read from disk to render it (there is no way around
  * that - something has to display the content) and still fully readable by
@@ -81,12 +81,12 @@ class EnvEditorProvider implements vscode.CustomReadonlyEditorProvider<EnvDocume
             document.uri,
             Buffer.from(newText + (newText.endsWith('\n') ? '' : '\n'), 'utf8')
           );
-          vscode.window.setStatusBarMessage('Dotenv Safe: saved', 2000);
+          vscode.window.setStatusBarMessage('Dotenv Safe Edit: saved', 2000);
           break;
         }
         case 'copyValue': {
           await vscode.env.clipboard.writeText(msg.value);
-          vscode.window.setStatusBarMessage('Dotenv Safe: value copied to clipboard', 2000);
+          vscode.window.setStatusBarMessage('Dotenv Safe Edit: value copied to clipboard', 2000);
           break;
         }
         case 'openAsText': {
@@ -274,7 +274,7 @@ function getHtml(filePath: string, text: string): string {
 </head>
 <body>
   <div class="banner">
-    <span>🔒 Dotenv Safe &mdash; values masked by default. This file is not exposed as a text document/tab to other extensions or AI context.</span>
+    <span>🔒 Dotenv Safe Edit &mdash; values masked by default. This file is not exposed as a text document/tab to other extensions or AI context.</span>
     <span class="path">${esc(filePath)}</span>
   </div>
   <div class="toolbar">

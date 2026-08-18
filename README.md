@@ -1,4 +1,4 @@
-# Dotenv Safe
+# Dotenv Safe Edit
 
 Opens files matching `*.env`, `*.env.*`, `.env`, or `.env.*` in an isolated
 custom editor instead of the normal text editor.
@@ -10,7 +10,7 @@ which is exactly what tools like GitHub Copilot Chat's "Ask" mode read as
 implicit context (the active editor). If a `.env` file is left open and you
 switch to Ask mode, its contents can get pulled into the chat automatically.
 
-Dotenv Safe registers a **non-text custom editor** for `.env` files. The file is
+Dotenv Safe Edit registers a **non-text custom editor** for `.env` files. The file is
 still read from disk to display it, but it never becomes a `TextDocument` and
 never shows up as an "active text editor" — so tools that read open
 tabs/editors have nothing to read while it's open here.
@@ -18,7 +18,7 @@ tabs/editors have nothing to read while it's open here.
 This does **not** protect against:
 
 * Agents/tools with direct filesystem or shell access (`cat .env`, file-read tools, etc.)
-* Anyone using "Open As... > Text Editor" to bypass Dotenv Safe deliberately
+* Anyone using "Open As... > Text Editor" to bypass Dotenv Safe Edit deliberately
 * Anything that indexes your workspace on disk directly (e.g. `@workspace`
   style search over files, if it bypasses editor state)
 
@@ -58,13 +58,13 @@ There's no published Marketplace release yet, so build the `.vsix` locally first
 
 Then install the extension:
 
-1. Right click the `dotenv-safe-x.y.z.vsix` file → **Install Extension VSIX**.
+1. Right click the `vscode-dotenv-safe-x.y.z.vsix` file → **Install Extension VSIX**.
 
 Or alternatively:
 
 1. VS Code → Extensions view → `...` menu (top right) → **Install from VSIX...**
-2. Pick the generated `dotenv-safe-x.y.z.vsix`
+2. Pick the generated `vscode-dotenv-safe-x.y.z.vsix`
 
 ## Uninstall
 
-* Extensions view → Dotenv Safe → gear icon → Uninstall
+* Extensions view → Dotenv Safe Edit → gear icon → Uninstall

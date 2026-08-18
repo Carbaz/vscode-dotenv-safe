@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Dotenv Safe Extension",
+      "name": "Run Dotenv Safe Edit Extension",
       "type": "extensionHost",
       "request": "launch",
       "args": [
