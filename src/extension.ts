@@ -142,7 +142,11 @@ function getHtml(filePath: string, text: string): string {
 
   const rows = lines.map((l, i) => {
     if (l.isRaw) {
-      return `<div class="raw-line" data-idx="${i}">${esc(l.raw) || '&nbsp;'}</div>`;
+      return `
+      <div class="raw-line" data-idx="${i}">
+        <input class="raw-input" data-idx="${i}" value="${esc(l.raw)}" spellcheck="false" autocomplete="off" />
+        <button class="icon-btn del" data-idx="${i}" title="Delete line" tabindex="-1">✕</button>
+      </div>`;
     }
     return `
       <div class="row" data-idx="${i}">
@@ -151,10 +155,10 @@ function getHtml(filePath: string, text: string): string {
           <span class="eq">=</span>
           <input class="value masked" type="password" data-idx="${i}" value="${esc(l.value)}" spellcheck="false" autocomplete="off" />
         </div>
-        <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility">⌒</button>
-        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =">⇄</button>
-        <button class="icon-btn copy" data-idx="${i}" title="Copy value">⧉</button>
-        <button class="icon-btn del" data-idx="${i}" title="Delete row">✕</button>
+        <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility" tabindex="-1">⌒</button>
+        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =" tabindex="-1">⇄</button>
+        <button class="icon-btn copy" data-idx="${i}" title="Copy value" tabindex="-1">⧉</button>
+        <button class="icon-btn del" data-idx="${i}" title="Delete row" tabindex="-1">✕</button>
       </div>`;
   }).join('\n');
 
@@ -191,7 +195,18 @@ function getHtml(filePath: string, text: string): string {
   }
   button.action.secondary:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
   .row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .raw-line { opacity: 0.55; font-family: monospace; white-space: pre; margin-bottom: 4px; min-height: 1.2em; }
+  .raw-line { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; opacity: 0.65; }
+  .raw-line input.raw-input {
+    flex: 1; font-family: monospace; font-style: italic;
+    background: transparent; border: 1px solid transparent;
+    padding: 3px 6px; border-radius: 3px; color: inherit;
+  }
+  .raw-line input.raw-input:hover {
+    background: rgba(128, 128, 128, 0.12);
+  }
+  .raw-line input.raw-input:focus {
+    background: var(--vscode-input-background); border-color: var(--vscode-input-border, #3c3c3c);
+  }
   .kv { display: flex; align-items: center; gap: 0; flex: 1; min-width: 0; }
   .kv.spaced { gap: 6px; }
   input.key, input.value {
@@ -202,6 +217,9 @@ function getHtml(filePath: string, text: string): string {
   }
   input.key { flex: 0 0 220px; }
   input.value { flex: 1; }
+  input.key.invalid, input.value.invalid {
+    border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+  }
   .eq { opacity: 0.5; }
   .icon-btn {
     background: transparent; border: none; cursor: pointer;
@@ -239,6 +257,7 @@ function getHtml(filePath: string, text: string): string {
       <button class="action" id="revealAll">Reveal all</button>
       <button class="action secondary" id="maskAll">Mask all</button>
       <button class="action secondary" id="addRow">+ Add variable</button>
+      <button class="action secondary" id="addLine">+ Add line</button>
     </div>
     <div class="toolbar-right">
       <button class="action" id="save" disabled>Save</button>
@@ -298,7 +317,7 @@ function getHtml(filePath: string, text: string): string {
     const out = [];
     rowsEl.querySelectorAll('.raw-line, .row').forEach(el => {
       if (el.classList.contains('raw-line')) {
-        out.push({ isRaw: true, raw: el.textContent === '\\u00a0' ? '' : el.textContent });
+        out.push({ isRaw: true, raw: el.querySelector('.raw-input').value });
       } else {
         const key = el.querySelector('.key').value;
         const value = el.querySelector('.value').value;
@@ -331,7 +350,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addRow').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'row';
-    div.innerHTML = '<div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility">⌒</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =">⇄</button><button class="icon-btn copy" title="Copy value">⧉</button><button class="icon-btn del" title="Delete row">✕</button>';
+    div.innerHTML = '<div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
     markDirty();
@@ -346,8 +365,20 @@ function getHtml(filePath: string, text: string): string {
     const keyInput = row.querySelector('.key');
     const valueInput = row.querySelector('.value');
 
-    keyInput?.addEventListener('input', markDirty);
-    valueInput?.addEventListener('input', markDirty);
+    const validate = () => {
+      keyInput.classList.toggle('invalid', keyInput.value.trim() === '');
+      valueInput.classList.toggle('invalid', valueInput.value.trim() === '');
+    };
+    validate();
+
+    keyInput?.addEventListener('input', () => {
+      validate();
+      markDirty();
+    });
+    valueInput?.addEventListener('input', () => {
+      validate();
+      markDirty();
+    });
     revealBtn?.addEventListener('click', () => {
       valueInput.type = valueInput.type === 'password' ? 'text' : 'password';
       revealBtn.textContent = valueInput.type === 'password' ? '⌒' : '👁';
@@ -369,6 +400,38 @@ function getHtml(filePath: string, text: string): string {
   }
 
   rowsEl.querySelectorAll('.row').forEach(wireRow);
+
+  document.getElementById('addLine').addEventListener('click', () => {
+    const div = document.createElement('div');
+    div.className = 'raw-line';
+    div.innerHTML = '<input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
+    rowsEl.appendChild(div);
+    wireRawRow(div);
+    div.querySelector('.raw-input').focus();
+    markDirty();
+  });
+
+  function wireRawRow(row) {
+    const input = row.querySelector('.raw-input');
+    const delBtn = row.querySelector('.del');
+    input?.addEventListener('input', () => {
+      // Auto-prefix so free text always reads as a comment unless left blank.
+      if (input.value !== '' && !input.value.startsWith('#')) {
+        const pos = input.selectionStart ?? input.value.length;
+        input.value = '# ' + input.value;
+        input.setSelectionRange(pos + 2, pos + 2);
+      }
+      markDirty();
+    });
+    delBtn?.addEventListener('click', () => {
+      showConfirmPopup(delBtn, 'Delete this line?', () => {
+        row.remove();
+        markDirty();
+      });
+    });
+  }
+
+  rowsEl.querySelectorAll('.raw-line').forEach(wireRawRow);
 </script>
 </body>
 </html>`;
