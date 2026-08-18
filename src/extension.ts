@@ -144,10 +144,12 @@ function getHtml(filePath: string, text: string): string {
     if (l.isRaw) {
       return `
       <div class="raw-line" data-idx="${i}">
-        <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
-        <div class="move-group">
-          <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
-          <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
+        <div class="reorder-group">
+          <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
+          <div class="move-group">
+            <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">⇑</button>
+            <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">⇓</button>
+          </div>
         </div>
         <input class="raw-input" data-idx="${i}" value="${esc(l.raw)}" spellcheck="false" autocomplete="off" />
         <button class="icon-btn del" data-idx="${i}" title="Delete line" tabindex="-1">✕</button>
@@ -155,10 +157,12 @@ function getHtml(filePath: string, text: string): string {
     }
     return `
       <div class="row" data-idx="${i}">
-        <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
-        <div class="move-group">
-          <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
-          <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
+        <div class="reorder-group">
+          <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
+          <div class="move-group">
+            <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">⇑</button>
+            <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">⇓</button>
+          </div>
         </div>
         <div class="kv${l.spaced ? ' spaced' : ''}">
           <input class="key" data-idx="${i}" value="${esc(l.key)}" spellcheck="false" />
@@ -167,7 +171,7 @@ function getHtml(filePath: string, text: string): string {
         </div>
         <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility" tabindex="-1">⌒</button>
         <button class="icon-btn copy" data-idx="${i}" title="Copy value" tabindex="-1">⧉</button>
-        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =" tabindex="-1">⇄</button>
+        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =" tabindex="-1">${l.spaced ? '⇎' : '⇔'}</button>
         <button class="icon-btn del" data-idx="${i}" title="Delete row" tabindex="-1">✕</button>
       </div>`;
   }).join('\n');
@@ -237,10 +241,12 @@ function getHtml(filePath: string, text: string): string {
     opacity: 0.7; padding: 2px 4px;
   }
   .icon-btn:hover { opacity: 1; }
+  .reveal, .spacing-toggle { display: inline-block; width: 1.4em; text-align: center; }
   .move-group { display: flex; gap: 0; }
   .move-group .icon-btn { padding: 2px 1px; }
+  .reorder-group { display: flex; align-items: center; gap: 2px; }
   .drag-handle {
-    cursor: grab; opacity: 0.6; padding: 2px 4px; user-select: none;
+    cursor: grab; opacity: 0.6; padding: 2px 2px; user-select: none;
   }
   .drag-handle:active { cursor: grabbing; }
   .row.dragging, .raw-line.dragging { opacity: 0.35; }
@@ -445,7 +451,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addRow').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'row';
-    div.innerHTML = '<span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
+    div.innerHTML = '<div class="reorder-group"><span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">⇑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">⇓</button></div></div><div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">' + (defaultSpaced ? '⇎' : '⇔') + '</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
     markDirty();
@@ -485,6 +491,7 @@ function getHtml(filePath: string, text: string): string {
     });
     spacingBtn?.addEventListener('click', () => {
       kv.classList.toggle('spaced');
+      spacingBtn.textContent = kv.classList.contains('spaced') ? '⇎' : '⇔';
       recalcDefaultSpaced();
       markDirty();
     });
@@ -503,7 +510,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addLine').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'raw-line';
-    div.innerHTML = '<span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
+    div.innerHTML = '<div class="reorder-group"><span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">⇑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">⇓</button></div></div><input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRawRow(div);
     div.querySelector('.raw-input').focus();
