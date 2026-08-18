@@ -1,6 +1,7 @@
 *.env.*
 .vscode/**
 node_modules/**
+releases/**
 src/**
 .gitignore
 tsconfig.json
