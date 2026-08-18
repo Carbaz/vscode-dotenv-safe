@@ -144,6 +144,7 @@ function getHtml(filePath: string, text: string): string {
     if (l.isRaw) {
       return `
       <div class="raw-line" data-idx="${i}">
+        <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
         <div class="move-group">
           <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
           <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
@@ -154,6 +155,7 @@ function getHtml(filePath: string, text: string): string {
     }
     return `
       <div class="row" data-idx="${i}">
+        <span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span>
         <div class="move-group">
           <button class="icon-btn move-up" data-idx="${i}" title="Move up" tabindex="-1">↑</button>
           <button class="icon-btn move-down" data-idx="${i}" title="Move down" tabindex="-1">↓</button>
@@ -236,6 +238,14 @@ function getHtml(filePath: string, text: string): string {
   }
   .icon-btn:hover { opacity: 1; }
   .move-group { display: flex; gap: 0; }
+  .move-group .icon-btn { padding: 2px 1px; }
+  .drag-handle {
+    cursor: grab; opacity: 0.6; padding: 2px 4px; user-select: none;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .row.dragging, .raw-line.dragging { opacity: 0.35; }
+  .row.drag-over-top, .raw-line.drag-over-top { border-top: 2px solid var(--vscode-focusBorder, #007acc); }
+  .row.drag-over-bottom, .raw-line.drag-over-bottom { border-bottom: 2px solid var(--vscode-focusBorder, #007acc); }
   .confirm-overlay {
     position: fixed; inset: 0; z-index: 10; display: flex;
     align-items: center; justify-content: center;
@@ -301,6 +311,67 @@ function getHtml(filePath: string, text: string): string {
     }
     markDirty();
   }
+
+  // Delegated on the container so newly added rows need no extra wiring.
+  let draggedRow = null;
+
+  function getRowEl(el) {
+    return el.closest('.row, .raw-line');
+  }
+
+  function clearDragOverMarkers() {
+    rowsEl.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  rowsEl.addEventListener('dragstart', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    const row = handle && getRowEl(handle);
+    if (!row) {
+      return;
+    }
+    draggedRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setDragImage(row, 10, 10);
+  });
+
+  rowsEl.addEventListener('dragover', (e) => {
+    if (!draggedRow) {
+      return;
+    }
+    e.preventDefault();
+    const target = getRowEl(e.target);
+    clearDragOverMarkers();
+    if (!target || target === draggedRow) {
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    target.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  rowsEl.addEventListener('drop', (e) => {
+    if (!draggedRow) {
+      return;
+    }
+    e.preventDefault();
+    const target = getRowEl(e.target);
+    clearDragOverMarkers();
+    if (target && target !== draggedRow) {
+      const rect = target.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      rowsEl.insertBefore(draggedRow, before ? target : target.nextSibling);
+      markDirty();
+    }
+  });
+
+  rowsEl.addEventListener('dragend', () => {
+    draggedRow?.classList.remove('dragging');
+    clearDragOverMarkers();
+    draggedRow = null;
+  });
 
   // Recomputed only when a row's spacing is toggled, so "add row" always
   // follows the current majority instead of the one from file-open time.
@@ -374,7 +445,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addRow').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'row';
-    div.innerHTML = '<div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
+    div.innerHTML = '<span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility" tabindex="-1">⌒</button><button class="icon-btn copy" title="Copy value" tabindex="-1">⧉</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =" tabindex="-1">⇄</button><button class="icon-btn del" title="Delete row" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
     markDirty();
@@ -432,7 +503,7 @@ function getHtml(filePath: string, text: string): string {
   document.getElementById('addLine').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'raw-line';
-    div.innerHTML = '<div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
+    div.innerHTML = '<span class="drag-handle" draggable="true" title="Drag to reorder">⠿</span><div class="move-group"><button class="icon-btn move-up" title="Move up" tabindex="-1">↑</button><button class="icon-btn move-down" title="Move down" tabindex="-1">↓</button></div><input class="raw-input" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn del" title="Delete line" tabindex="-1">✕</button>';
     rowsEl.appendChild(div);
     wireRawRow(div);
     div.querySelector('.raw-input').focus();
