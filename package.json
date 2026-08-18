@@ -1,0 +1,64 @@
+{
+  "name": "dotenv-safe",
+  "displayName": "Dotenv Safe",
+  "description": "Opens .env files in an isolated custom editor so their contents never become a readable text document, keeping them out of AI chat/agent context that reads open tabs.",
+  "version": "0.0.1",
+  "publisher": "Carbaz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Carbaz/vscode-dotenv-safe.git"
+  },
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "dotenvSafe.secureEditor",
+        "displayName": "Dotenv Safe",
+        "selector": [
+          {
+            "filenamePattern": "*.env"
+          },
+          {
+            "filenamePattern": "*.env.*"
+          },
+          {
+            "filenamePattern": ".env"
+          },
+          {
+            "filenamePattern": ".env.*"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "dotenvSafe.openAsText",
+        "title": "Dotenv Safe: Open as Plain Text (bypass masking)"
+      },
+      {
+        "command": "dotenvSafe.revealAll",
+        "title": "Dotenv Safe: Reveal All Values in Current File"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^7.0.2"
+  }
+}

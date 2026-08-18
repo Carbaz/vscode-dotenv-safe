@@ -15,3 +15,7 @@ out/
 *.env.*
 .env
 .env.*
+
+# Local decision/notes log (not for the public repo)
+TODO.md
+DECISIONS.local.md

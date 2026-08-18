@@ -6,4 +6,6 @@ src/**
 tsconfig.json
 *.vsix
 *.map
+TODO.md
 README-DEV.md
+DECISIONS.local.md
