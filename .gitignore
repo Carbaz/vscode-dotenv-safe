@@ -1,0 +1,17 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+*.vsix
+
+# Testing
+.vscode-test/
+
+# Environment files
+*.env
+*.env.*
+.env
+.env.*
