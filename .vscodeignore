@@ -1,12 +1,12 @@
-*.env.*
+*.env*
 .vscode/**
 node_modules/**
 releases/**
 src/**
 .gitignore
 tsconfig.json
-*.vsix
-*.map
+**/*.vsix
+**/*.map
 TODO.md
 README-DEV.md
 DECISIONS.local.md
