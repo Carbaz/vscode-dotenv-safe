@@ -10,10 +10,10 @@ which is exactly what tools like GitHub Copilot Chat's "Ask" mode read as
 implicit context (the active editor). If a `.env` file is left open and you
 switch to Ask mode, its contents can get pulled into the chat automatically.
 
-Dotenv Safe Edit registers a **non-text custom editor** for `.env` files. The file is
-still read from disk to display it, but it never becomes a `TextDocument` and
-never shows up as an "active text editor" — so tools that read open
-tabs/editors have nothing to read while it's open here.
+Dotenv Safe Edit registers a **non-text custom editor** for `.env` files.
+The file is still read from disk to display it, but it never becomes a `TextDocument`
+and never shows up as an "active text editor" — so tools that read open tabs/editors
+have nothing to read while it's open here.
 
 This does **not** protect against:
 
@@ -22,31 +22,30 @@ This does **not** protect against:
 * Anything that indexes your workspace on disk directly (e.g. `@workspace`
   style search over files, if it bypasses editor state)
 
-It closes one specific, real hole: forgetting to close the tab before
-switching to chat.
+It closes one specific, real hole: forgetting to close the tab before switching to
+chat. Values are also masked by default to reduce the risk of shoulder surfing or
+accidental exposure when sharing your screen.
 
 ## Features
 
-* Works for matching files anywhere on disk, including outside the current workspace
-  folder.
-* Values masked by default (`type="password"` style inputs)
-* Per-row reveal/mask toggle, or reveal/mask all
-* Copy a single value to clipboard without revealing it on screen
+* **Works for matching files anywhere on disk, including outside the current workspace
+  folder.**
+* **Values masked by default (`type="password"` style inputs)**
+* **Per-row reveal/mask toggle, or reveal/mask all**
+* **Copy a single value to clipboard without revealing it on screen**
+* **Full editing inside the extension, so there's no need to open the `.env` file
+  in a regular text editor**
 * Add / edit / delete variables, saved directly to disk
 * Comments and blank lines are editable too (free-text lines, auto-prefixed
   with `#` unless left blank), not just read-only passthrough
 * Reorder any line (variable or comment/blank) via move up/down buttons or
   drag-and-drop using the handle on the left
 * Empty key or value fields are flagged with a red border
-* Sticky toolbar (Reveal all / Mask all / +Add variable / +Add line / Save /
-  Open as plain text) that stays visible while scrolling through long
-  files; the file path is shown in the banner above it
+* Sticky toolbar that stays visible while scrolling through long files
 * Save is disabled until there's an actual unsaved change
-* Tab only moves between text fields (key/value/comment inputs), not
-  through the row buttons
-* "Open as Plain Text..." escape hatch when you deliberately want the normal
-  editor (e.g. to diff, or to use VS Code's find/replace)
-* Bypass per-file: right-click the file → **Open With...** → **Text Editor**
+* "Open as Plain Text..." escape hatch, with a confirmation warning before
+  making the file contents visible in the normal editor
+* Bypass extension per-file: right-click the file → **Open With...** → **Text Editor**
 * Wrapping quotes (e.g. `KEY="value"`) get baked into the displayed value.
 
 ## Screenshots

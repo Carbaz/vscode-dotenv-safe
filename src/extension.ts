@@ -61,7 +61,7 @@ class EnvEditorProvider implements vscode.CustomReadonlyEditorProvider<EnvDocume
     const render = async () => {
       const bytes = await vscode.workspace.fs.readFile(document.uri);
       const text = Buffer.from(bytes).toString('utf8');
-      webviewPanel.webview.html = getHtml(document.uri.fsPath, text);
+      webviewPanel.webview.html = getHtml(text);
     };
 
     await render();
@@ -135,7 +135,7 @@ function esc(s: string): string {
   }[c] as string));
 }
 
-function getHtml(filePath: string, text: string): string {
+function getHtml(text: string): string {
   const lines = parseEnv(text);
   const nonce = String(Date.now());
   const defaultSpaced = majoritySpaced(lines);
@@ -267,15 +267,12 @@ function getHtml(filePath: string, text: string): string {
   .confirm-actions { display: flex; gap: 8px; }
   .banner {
     font-size: 12px; opacity: 0.65; margin-bottom: 10px;
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .banner .path { flex: 0 0 auto; }
 </style>
 </head>
 <body>
   <div class="banner">
-    <span>🔒 Dotenv Safe Edit &mdash; values masked by default. This file is not exposed as a text document/tab to other extensions or AI context.</span>
-    <span class="path">${esc(filePath)}</span>
+    <span>🔒 Dotenv Safe Edit: This tab's content is not exposed as text to other extensions or AI context.</span>
   </div>
   <div class="toolbar">
     <div class="toolbar-left">
@@ -394,11 +391,11 @@ function getHtml(filePath: string, text: string): string {
     defaultSpaced = spacedCount > unspacedCount;
   }
 
-  function showConfirmPopup(anchorEl, message, onConfirm) {
+  function showConfirmPopup(anchorEl, message, onConfirm, confirmLabel = 'Delete') {
     document.querySelector('.confirm-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
-    overlay.innerHTML = '<div class="confirm-box"><span>' + message + '</span><div class="confirm-actions"><button class="action" data-act="yes">Delete</button><button class="action secondary" data-act="no">Cancel</button></div></div>';
+    overlay.innerHTML = '<div class="confirm-box"><span>' + message + '</span><div class="confirm-actions"><button class="action" data-act="yes">' + confirmLabel + '</button><button class="action secondary" data-act="no">Cancel</button></div></div>';
     document.body.appendChild(overlay);
 
     const close = () => overlay.remove();
@@ -436,7 +433,12 @@ function getHtml(filePath: string, text: string): string {
   });
 
   document.getElementById('openAsText').addEventListener('click', () => {
-    vscode.postMessage({ type: 'openAsText' });
+    showConfirmPopup(
+      document.getElementById('openAsText'),
+      'Opening this file as plain text will make its contents visible.',
+      () => vscode.postMessage({ type: 'openAsText' }),
+      'Open as plain text'
+    );
   });
 
   document.getElementById('revealAll').addEventListener('click', () => {
