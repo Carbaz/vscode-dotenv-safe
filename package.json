@@ -1,7 +1,8 @@
 {
-  "name": "dotenv-safe",
+  "name": "vscode-dotenv-safe",
   "displayName": "Dotenv Safe",
   "description": "Opens .env files in an isolated custom editor so their contents never become a readable text document, keeping them out of AI chat/agent context that reads open tabs.",
+  "icon": "icon.png",
   "version": "0.1.0",
   "publisher": "Carbaz",
   "repository": {
