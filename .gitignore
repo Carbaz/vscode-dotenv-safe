@@ -19,3 +19,8 @@ out/
 # Local decision/notes log (not for the public repo)
 TODO.md
 DECISIONS.local.md
+
+# Personal editor config (keep launch.json/tasks.json shared)
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
