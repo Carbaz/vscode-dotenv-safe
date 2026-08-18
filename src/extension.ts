@@ -31,6 +31,8 @@ type KvLine = {
   isRaw: false;
   key: string;
   value: string;
+  // whether this line uses `KEY = value` (spaced) vs `KEY=value` (unspaced).
+  spaced: boolean;
 };
 
 type EnvLine = RawLine | KvLine;
@@ -73,7 +75,7 @@ class EnvEditorProvider implements vscode.CustomReadonlyEditorProvider<EnvDocume
       switch (msg.type) {
         case 'save': {
           const newText = msg.lines
-            .map((l) => (l.isRaw ? l.raw : `${l.key}=${l.value}`))
+            .map((l) => (l.isRaw ? l.raw : l.spaced ? `${l.key} = ${l.value}` : `${l.key}=${l.value}`))
             .join('\n');
           await vscode.workspace.fs.writeFile(
             document.uri,
@@ -106,8 +108,25 @@ function parseEnv(text: string): EnvLine[] {
     const idx = line.indexOf('=');
     const key = line.slice(0, idx).trim();
     const value = line.slice(idx + 1).trim();
-    return { isRaw: false, key, value };
+    const spaced = line[idx - 1] === ' ' || line[idx + 1] === ' ';
+    return { isRaw: false, key, value, spaced };
   });
+}
+
+// Tie or no key/value lines at all defaults to unspaced (most common style).
+function majoritySpaced(lines: EnvLine[]): boolean {
+  let spacedCount = 0;
+  let unspacedCount = 0;
+  for (const l of lines) {
+    if (!l.isRaw) {
+      if (l.spaced) {
+        spacedCount++;
+      } else {
+        unspacedCount++;
+      }
+    }
+  }
+  return spacedCount > unspacedCount;
 }
 
 function esc(s: string): string {
@@ -119,6 +138,7 @@ function esc(s: string): string {
 function getHtml(filePath: string, text: string): string {
   const lines = parseEnv(text);
   const nonce = String(Date.now());
+  const defaultSpaced = majoritySpaced(lines);
 
   const rows = lines.map((l, i) => {
     if (l.isRaw) {
@@ -126,10 +146,13 @@ function getHtml(filePath: string, text: string): string {
     }
     return `
       <div class="row" data-idx="${i}">
-        <input class="key" data-idx="${i}" value="${esc(l.key)}" spellcheck="false" />
-        <span class="eq">=</span>
-        <input class="value masked" type="password" data-idx="${i}" value="${esc(l.value)}" spellcheck="false" autocomplete="off" />
-        <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility">👁</button>
+        <div class="kv${l.spaced ? ' spaced' : ''}">
+          <input class="key" data-idx="${i}" value="${esc(l.key)}" spellcheck="false" />
+          <span class="eq">=</span>
+          <input class="value masked" type="password" data-idx="${i}" value="${esc(l.value)}" spellcheck="false" autocomplete="off" />
+        </div>
+        <button class="icon-btn reveal" data-idx="${i}" title="Toggle visibility">⌒</button>
+        <button class="icon-btn spacing-toggle" data-idx="${i}" title="Toggle spacing around =">⇄</button>
         <button class="icon-btn copy" data-idx="${i}" title="Copy value">⧉</button>
         <button class="icon-btn del" data-idx="${i}" title="Delete row">✕</button>
       </div>`;
@@ -161,6 +184,8 @@ function getHtml(filePath: string, text: string): string {
   }
   .row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
   .raw-line { opacity: 0.55; font-family: monospace; white-space: pre; margin-bottom: 4px; min-height: 1.2em; }
+  .kv { display: flex; align-items: center; gap: 0; flex: 1; min-width: 0; }
+  .kv.spaced { gap: 6px; }
   input.key, input.value {
     background: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
@@ -176,6 +201,19 @@ function getHtml(filePath: string, text: string): string {
     opacity: 0.7; padding: 2px 4px;
   }
   .icon-btn:hover { opacity: 1; }
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 10; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .confirm-box {
+    display: flex; flex-direction: column; gap: 12px; align-items: center;
+    background: var(--vscode-editorWidget-background); color: var(--vscode-editorWidget-foreground);
+    border: 1px solid var(--vscode-editorWidget-border, transparent);
+    padding: 16px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    font-size: 13px;
+  }
+  .confirm-actions { display: flex; gap: 8px; }
   .footer { margin-top: 14px; display: flex; gap: 8px; }
   .banner {
     font-size: 12px; opacity: 0.65; margin-bottom: 10px;
@@ -199,6 +237,42 @@ function getHtml(filePath: string, text: string): string {
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   const rowsEl = document.getElementById('rows');
+  let defaultSpaced = ${defaultSpaced ? 'true' : 'false'};
+
+  // Recomputed only when a row's spacing is toggled, so "add row" always
+  // follows the current majority instead of the one from file-open time.
+  function recalcDefaultSpaced() {
+    let spacedCount = 0;
+    let unspacedCount = 0;
+    rowsEl.querySelectorAll('.row .kv').forEach(kv => {
+      if (kv.classList.contains('spaced')) {
+        spacedCount++;
+      } else {
+        unspacedCount++;
+      }
+    });
+    defaultSpaced = spacedCount > unspacedCount;
+  }
+
+  function showConfirmPopup(anchorEl, message, onConfirm) {
+    document.querySelector('.confirm-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = '<div class="confirm-box"><span>' + message + '</span><div class="confirm-actions"><button class="action" data-act="yes">Delete</button><button class="action secondary" data-act="no">Cancel</button></div></div>';
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        close();
+      }
+    });
+    overlay.querySelector('[data-act="yes"]').addEventListener('click', () => {
+      close();
+      onConfirm();
+    });
+    overlay.querySelector('[data-act="no"]').addEventListener('click', close);
+  }
 
   function collect() {
     const out = [];
@@ -208,7 +282,8 @@ function getHtml(filePath: string, text: string): string {
       } else {
         const key = el.querySelector('.key').value;
         const value = el.querySelector('.value').value;
-        out.push({ isRaw: false, key, value });
+        const spaced = el.querySelector('.kv').classList.contains('spaced');
+        out.push({ isRaw: false, key, value, spaced });
       }
     });
     return out;
@@ -224,15 +299,17 @@ function getHtml(filePath: string, text: string): string {
 
   document.getElementById('revealAll').addEventListener('click', () => {
     document.querySelectorAll('input.value').forEach(i => i.type = 'text');
+    document.querySelectorAll('.reveal').forEach(b => b.textContent = '👁');
   });
   document.getElementById('maskAll').addEventListener('click', () => {
     document.querySelectorAll('input.value').forEach(i => i.type = 'password');
+    document.querySelectorAll('.reveal').forEach(b => b.textContent = '⌒');
   });
 
   document.getElementById('addRow').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'row';
-    div.innerHTML = '<input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /><button class="icon-btn reveal">👁</button><button class="icon-btn copy">⧉</button><button class="icon-btn del">✕</button>';
+    div.innerHTML = '<div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility">⌒</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =">⇄</button><button class="icon-btn copy" title="Copy value">⧉</button><button class="icon-btn del" title="Delete row">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
   });
@@ -241,15 +318,24 @@ function getHtml(filePath: string, text: string): string {
     const revealBtn = row.querySelector('.reveal');
     const copyBtn = row.querySelector('.copy');
     const delBtn = row.querySelector('.del');
+    const spacingBtn = row.querySelector('.spacing-toggle');
+    const kv = row.querySelector('.kv');
     const valueInput = row.querySelector('.value');
 
     revealBtn?.addEventListener('click', () => {
       valueInput.type = valueInput.type === 'password' ? 'text' : 'password';
+      revealBtn.textContent = valueInput.type === 'password' ? '⌒' : '👁';
     });
     copyBtn?.addEventListener('click', () => {
       vscode.postMessage({ type: 'copyValue', value: valueInput.value });
     });
-    delBtn?.addEventListener('click', () => row.remove());
+    spacingBtn?.addEventListener('click', () => {
+      kv.classList.toggle('spaced');
+      recalcDefaultSpaced();
+    });
+    delBtn?.addEventListener('click', () => {
+      showConfirmPopup(delBtn, 'Delete this variable?', () => row.remove());
+    });
   }
 
   rowsEl.querySelectorAll('.row').forEach(wireRow);
