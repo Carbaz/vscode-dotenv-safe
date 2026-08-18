@@ -53,7 +53,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run compile",
-    "package": "npm run compile && vsce package"
+    "package": "npm run compile && vsce package -o releases/"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
