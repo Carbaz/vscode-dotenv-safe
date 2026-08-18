@@ -27,38 +27,43 @@ switching to chat.
 
 ## Features
 
+* Works for matching files anywhere on disk, including outside the current workspace
+  folder.
 * Values masked by default (`type="password"` style inputs)
 * Per-row reveal/mask toggle, or reveal/mask all
 * Copy a single value to clipboard without revealing it on screen
 * Add / edit / delete variables, saved directly to disk
-* Comments and blank lines preserved on save
-* Sticky toolbar (Reveal all / Mask all / +Add variable / Save / Open as
-  plain text) that stays visible while scrolling through long files; the
-  file path is shown in the banner above it
+* Comments and blank lines are editable too (free-text lines, auto-prefixed
+  with `#` unless left blank), not just read-only passthrough
+* Reorder any line (variable or comment/blank) via move up/down buttons or
+  drag-and-drop using the handle on the left
+* Empty key or value fields are flagged with a red border
+* Sticky toolbar (Reveal all / Mask all / +Add variable / +Add line / Save /
+  Open as plain text) that stays visible while scrolling through long
+  files; the file path is shown in the banner above it
 * Save is disabled until there's an actual unsaved change
+* Tab only moves between text fields (key/value/comment inputs), not
+  through the row buttons
 * "Open as Plain Text..." escape hatch when you deliberately want the normal
   editor (e.g. to diff, or to use VS Code's find/replace)
 * Bypass per-file: right-click the file → **Open With...** → **Text Editor**
-
-## Known limitations
-
-* Early version — no packaged release yet, build the `.vsix` yourself (see
-  below).
-* Values wrapped in quotes (e.g. `KEY="value"`) are not parsed correctly
-  yet — the wrapping quotes get baked into the displayed value.
+* Wrapping quotes (e.g. `KEY="value"`) get baked into the displayed value.
 
 ## Install
 
-There's no published release yet, so build the `.vsix` locally:
+There's no published Marketplace release yet, so build the `.vsix` locally first:
 
 1. `npm install`
 2. `npm run package` (runs `tsc` then `vsce package`)
-3. VS Code → Extensions view → `...` menu (top right) → **Install from
-   VSIX...**
-4. Pick the generated `dotenv-safe-0.0.1.vsix`
 
-Works for matching files anywhere on disk, including outside the current
-workspace folder.
+Then install the extension:
+
+1. Right click the `dotenv-safe-x.y.z.vsix` file → **Install Extension VSIX**.
+
+Or alternatively:
+
+1. VS Code → Extensions view → `...` menu (top right) → **Install from VSIX...**
+2. Pick the generated `dotenv-safe-x.y.z.vsix`
 
 ## Uninstall
 
