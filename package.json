@@ -2,7 +2,7 @@
   "name": "dotenv-safe",
   "displayName": "Dotenv Safe",
   "description": "Opens .env files in an isolated custom editor so their contents never become a readable text document, keeping them out of AI chat/agent context that reads open tabs.",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "publisher": "Carbaz",
   "repository": {
     "type": "git",

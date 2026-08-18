@@ -170,18 +170,26 @@ function getHtml(filePath: string, text: string): string {
     background: var(--vscode-editor-background);
     padding: 12px 16px;
   }
-  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-  .toolbar .path { opacity: 0.6; font-size: 12px; margin-left: auto; }
+  .toolbar {
+    display: flex; gap: 8px; margin-bottom: 12px; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 5;
+    background: var(--vscode-editor-background);
+    padding: 8px 0; margin: -12px -16px 12px; padding-left: 16px; padding-right: 16px;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, transparent);
+  }
+  .toolbar-left, .toolbar-right { display: flex; gap: 8px; align-items: center; }
   button.action {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background, #0e639c);
+    color: var(--vscode-button-foreground, #ffffff);
     border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer;
   }
   button.action:hover { background: var(--vscode-button-hoverBackground); }
+  button.action:disabled { opacity: 0.5; cursor: not-allowed; }
   button.action.secondary {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground, #1e9c39);
+    color: var(--vscode-button-secondaryForeground, #ffffff);
   }
+  button.action.secondary:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
   .row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
   .raw-line { opacity: 0.55; font-family: monospace; white-space: pre; margin-bottom: 4px; min-height: 1.2em; }
   .kv { display: flex; align-items: center; gap: 0; flex: 1; min-width: 0; }
@@ -214,30 +222,42 @@ function getHtml(filePath: string, text: string): string {
     font-size: 13px;
   }
   .confirm-actions { display: flex; gap: 8px; }
-  .footer { margin-top: 14px; display: flex; gap: 8px; }
   .banner {
     font-size: 12px; opacity: 0.65; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
+  .banner .path { flex: 0 0 auto; }
 </style>
 </head>
 <body>
-  <div class="banner">🔒 Dotenv Safe &mdash; values masked by default. This file is not exposed as a text document/tab to other extensions or AI context.</div>
-  <div class="toolbar">
-    <button class="action" id="revealAll">Reveal all</button>
-    <button class="action secondary" id="maskAll">Mask all</button>
-    <button class="action secondary" id="addRow">+ Add variable</button>
+  <div class="banner">
+    <span>🔒 Dotenv Safe &mdash; values masked by default. This file is not exposed as a text document/tab to other extensions or AI context.</span>
     <span class="path">${esc(filePath)}</span>
   </div>
-  <div id="rows">${rows}</div>
-  <div class="footer">
-    <button class="action" id="save">Save</button>
-    <button class="action secondary" id="openAsText">Open as plain text&hellip;</button>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="action" id="revealAll">Reveal all</button>
+      <button class="action secondary" id="maskAll">Mask all</button>
+      <button class="action secondary" id="addRow">+ Add variable</button>
+    </div>
+    <div class="toolbar-right">
+      <button class="action" id="save" disabled>Save</button>
+      <button class="action secondary" id="openAsText">Open as plain text&hellip;</button>
+    </div>
   </div>
+  <div id="rows">${rows}</div>
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   const rowsEl = document.getElementById('rows');
+  const saveBtn = document.getElementById('save');
   let defaultSpaced = ${defaultSpaced ? 'true' : 'false'};
+  let dirty = false;
+
+  function markDirty() {
+    dirty = true;
+    saveBtn.disabled = false;
+  }
 
   // Recomputed only when a row's spacing is toggled, so "add row" always
   // follows the current majority instead of the one from file-open time.
@@ -289,8 +309,10 @@ function getHtml(filePath: string, text: string): string {
     return out;
   }
 
-  document.getElementById('save').addEventListener('click', () => {
+  saveBtn.addEventListener('click', () => {
     vscode.postMessage({ type: 'save', lines: collect() });
+    dirty = false;
+    saveBtn.disabled = true;
   });
 
   document.getElementById('openAsText').addEventListener('click', () => {
@@ -312,6 +334,7 @@ function getHtml(filePath: string, text: string): string {
     div.innerHTML = '<div class="kv' + (defaultSpaced ? ' spaced' : '') + '"><input class="key" value="" spellcheck="false" /><span class="eq">=</span><input class="value masked" type="password" value="" spellcheck="false" autocomplete="off" /></div><button class="icon-btn reveal" title="Toggle visibility">⌒</button><button class="icon-btn spacing-toggle" title="Toggle spacing around =">⇄</button><button class="icon-btn copy" title="Copy value">⧉</button><button class="icon-btn del" title="Delete row">✕</button>';
     rowsEl.appendChild(div);
     wireRow(div);
+    markDirty();
   });
 
   function wireRow(row) {
@@ -320,8 +343,11 @@ function getHtml(filePath: string, text: string): string {
     const delBtn = row.querySelector('.del');
     const spacingBtn = row.querySelector('.spacing-toggle');
     const kv = row.querySelector('.kv');
+    const keyInput = row.querySelector('.key');
     const valueInput = row.querySelector('.value');
 
+    keyInput?.addEventListener('input', markDirty);
+    valueInput?.addEventListener('input', markDirty);
     revealBtn?.addEventListener('click', () => {
       valueInput.type = valueInput.type === 'password' ? 'text' : 'password';
       revealBtn.textContent = valueInput.type === 'password' ? '⌒' : '👁';
@@ -332,9 +358,13 @@ function getHtml(filePath: string, text: string): string {
     spacingBtn?.addEventListener('click', () => {
       kv.classList.toggle('spaced');
       recalcDefaultSpaced();
+      markDirty();
     });
     delBtn?.addEventListener('click', () => {
-      showConfirmPopup(delBtn, 'Delete this variable?', () => row.remove());
+      showConfirmPopup(delBtn, 'Delete this variable?', () => {
+        row.remove();
+        markDirty();
+      });
     });
   }
 

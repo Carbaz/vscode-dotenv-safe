@@ -32,6 +32,10 @@ switching to chat.
 * Copy a single value to clipboard without revealing it on screen
 * Add / edit / delete variables, saved directly to disk
 * Comments and blank lines preserved on save
+* Sticky toolbar (Reveal all / Mask all / +Add variable / Save / Open as
+  plain text) that stays visible while scrolling through long files; the
+  file path is shown in the banner above it
+* Save is disabled until there's an actual unsaved change
 * "Open as Plain Text..." escape hatch when you deliberately want the normal
   editor (e.g. to diff, or to use VS Code's find/replace)
 * Bypass per-file: right-click the file → **Open With...** → **Text Editor**
