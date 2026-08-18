@@ -96,13 +96,6 @@ class EnvEditorProvider implements vscode.CustomReadonlyEditorProvider<EnvDocume
   }
 }
 
-/**
- * NOTE: known bug still present here on purpose (kept as-is during the TS
- * migration, tracked in TODO.md) — this does not trim whitespace around
- * `=` and does not strip wrapping quotes, so `DATE = "872835240"` currently
- * round-trips with the leading space and literal quotes baked into
- * `value`. Fixing that is backlog item covering the parser rewrite.
- */
 function parseEnv(text: string): EnvLine[] {
   return text.split('\n').map((line): EnvLine => {
     const trimmed = line.trim();
@@ -111,8 +104,8 @@ function parseEnv(text: string): EnvLine[] {
       return { isRaw: true, raw: line };
     }
     const idx = line.indexOf('=');
-    const key = line.slice(0, idx);
-    const value = line.slice(idx + 1);
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
     return { isRaw: false, key, value };
   });
 }

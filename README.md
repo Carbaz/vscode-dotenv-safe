@@ -40,9 +40,8 @@ switching to chat.
 
 * Early version — no packaged release yet, build the `.vsix` yourself (see
   below).
-* Values with spaces around `=` or wrapped in quotes (e.g. `KEY = "value"`)
-  are not parsed correctly yet — the raw spacing/quotes get baked into the
-  displayed value.
+* Values wrapped in quotes (e.g. `KEY="value"`) are not parsed correctly
+  yet — the wrapping quotes get baked into the displayed value.
 
 ## Install
 
